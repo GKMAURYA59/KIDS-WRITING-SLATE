@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f4d3a">
+<title>My Writing Slate</title>
+<style>
+:root{--bg:#f4efe6;--ink:#2b2118;--mut:#6b5d50;--card:#fff;--line:#d9cfc0;--acc:#e8590c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14110e;--ink:#f3ece2;--mut:#b5a898;--card:#221d18;--line:#3a322a;--acc:#ff922b}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.3 "Andika","Comic Sans MS","Chalkboard SE",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px;min-height:100dvh;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.stage{position:relative;aspect-ratio:4/3;width:min(100%,calc((100dvh - 250px)*4/3),900px);min-width:260px;border-radius:18px;overflow:hidden;border:10px solid #b07a43;box-shadow:0 6px 18px rgba(0,0,0,.3);touch-action:none}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#draw{touch-action:none;cursor:crosshair}
+.bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;width:min(100%,900px)}
+.sw{width:48px;height:48px;border-radius:50%;border:4px solid var(--line);padding:0;cursor:pointer}
+.sw[aria-pressed="true"]{border-color:var(--ink);transform:scale(1.15)}
+button{font:inherit;font-weight:700;min-height:52px;min-width:52px;border:3px solid var(--line);background:var(--card);color:var(--ink);border-radius:14px;padding:6px 12px;cursor:pointer}
+button:active{transform:scale(.95)}button[aria-pressed="true"]{border-color:var(--acc);background:var(--acc);color:#fff}
+button:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.dot{display:inline-block;border-radius:50%;background:currentColor;vertical-align:middle}
+#clear.arm{background:#c62828;border-color:#c62828;color:#fff}
+#let{font-size:34px;min-width:64px;text-align:center;font-weight:700}
+details{width:min(100%,900px);color:var(--mut);font-size:16px}summary{cursor:pointer;padding:6px}
+details .bar{margin-top:6px}select{font:inherit;min-height:44px;border-radius:10px;border:3px solid var(--line);background:var(--card);color:var(--ink);padding:4px 8px}
+#traceRow[hidden]{display:none}
+</style></head><body>
+<div class="stage" id="stage"><canvas id="guide" width="1200" height="900"></canvas><canvas id="draw" width="1200" height="900"></canvas></div>
+
+<div class="bar" id="colors" role="group" aria-label="Pen colours"></div>
+<div class="bar">
+<button data-size="10" aria-label="Thin pen"><span class="dot" style="width:8px;height:8px"></span></button>
+<button data-size="22" aria-label="Medium pen"><span class="dot" style="width:16px;height:16px"></span></button>
+<button data-size="44" aria-label="Thick pen"><span class="dot" style="width:28px;height:28px"></span></button>
+<button id="eraser" aria-pressed="false">🧽 Eraser</button>
+<button id="undo">↩️ Undo</button>
+<button id="clear">🗑️ Clear</button>
+<button id="save">💾 Save</button>
+<button id="fs" aria-pressed="false">⛶ Full screen</button>
+</div>
+<div class="bar"><button id="trace" aria-pressed="false">✏️ Trace letters</button>
+<span class="bar" id="traceRow" hidden style="width:auto"><button id="prev" aria-label="Previous letter">◀</button><span id="let" aria-live="polite">A</span><button id="next" aria-label="Next letter">▶</button></span></div>
+<details><summary>Parent options</summary><div class="bar">
+<label>Board <select id="board"><option value="chalk">Chalkboard</option><option value="white">Whiteboard</option></select></label>
+<label>Paper <select id="paper"><option value="lines">Writing lines</option><option value="grid">Grid</option><option value="none">Plain</option></select></label>
+<label>Letters <select id="set"><option value="ABCDEFGHIJKLMNOPQRSTUVWXYZ">ABC</option><option value="abcdefghijklmnopqrstuvwxyz">abc</option><option value="0123456789">123</option></select></label>
+</div></details>
+<script>
+const $=s=>document.querySelector(s),W=1200,H=900;
+const gc=$('#guide'),g=gc.getContext('2d'),dc=$('#draw'),d=dc.getContext('2d');
+const BOARD={chalk:{bg:'#1f4d3a',line:'rgba(255,255,255,.28)',ink:'#ffffff',guide:'rgba(255,255,255,.42)',theme:'#1f4d3a'},white:{bg:'#fffdf7',line:'rgba(40,60,120,.28)',ink:'#222222',guide:'rgba(0,0,0,.32)',theme:'#fffdf7'}};
+const PEN=['ink','#e53935','#fb8c00','#fdd835','#43a047','#1e88e5','#8e24aa','#ec407a'];
+let S={board:'chalk',paper:'lines',color:'ink',size:22,erase:false,trace:false,set:'ABCDEFGHIJKLMNOPQRSTUVWXYZ',i:0,strokes:[]},cur=null;
+const col=c=>c==='ink'?BOARD[S.board].ink:c;
+// pen swatches
+$('#colors').innerHTML=PEN.map((c,i)=>`<button class="sw" data-c="${c}" aria-label="Colour ${i+1}" aria-pressed="false"></button>`).join('');
+function paintSwatches(){document.querySelectorAll('.sw').forEach(b=>{b.style.background=col(b.dataset.c);b.setAttribute('aria-pressed',!S.erase&&S.color===b.dataset.c)})}
+function paintSizes(){document.querySelectorAll('[data-size]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.size===S.size))}
+// board + guide layer
+function renderBoard(ctx,withGuide){const B=BOARD[S.board];ctx.setLineDash([]);ctx.fillStyle=B.bg;ctx.fillRect(0,0,W,H);ctx.strokeStyle=B.line;ctx.lineWidth=3;
+if(S.paper==='lines'){for(let k=0;k<4;k++){const y=130+k*210;ctx.beginPath();ctx.moveTo(40,y);ctx.lineTo(W-40,y);ctx.stroke();ctx.setLineDash([14,14]);ctx.beginPath();ctx.moveTo(40,y+75);ctx.lineTo(W-40,y+75);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(40,y+150);ctx.lineTo(W-40,y+150);ctx.stroke()}}
+else if(S.paper==='grid'){for(let x=0;x<=W;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<=H;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}}
+if(withGuide&&S.trace){ctx.font='700 720px "Andika","Comic Sans MS","Chalkboard SE",system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.strokeStyle=B.guide;ctx.lineWidth=10;ctx.setLineDash([2,26]);ctx.lineCap='round';ctx.strokeText(S.set[S.i],W/2,H*0.8);ctx.setLineDash([])}}
+function paintBoard(){renderBoard(g,true);document.querySelector('meta[name=theme-color]').content=BOARD[S.board].theme;$('#stage').style.borderColor=S.board==='chalk'?'#b07a43':'#9aa5b1'}
+// strokes
+const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];
+function style(st){d.globalCompositeOperation=st.e?'destination-out':'source-over';d.strokeStyle=d.fillStyle=st.e?'#000':col(st.c);d.lineWidth=st.e?st.s*2:st.s;d.lineCap=d.lineJoin='round'}
+function seg(st,i){const p=st.p;style(st);d.beginPath();
+if(p.length===1){d.arc(p[0][0],p[0][1],d.lineWidth/2,0,7);d.fill();return}
+if(i===1){const m=mid(p[0],p[1]);d.moveTo(p[0][0],p[0][1]);d.lineTo(m[0],m[1])}
+else{const a=mid(p[i-2],p[i-1]),b=mid(p[i-1],p[i]);d.moveTo(a[0],a[1]);d.quadraticCurveTo(p[i-1][0],p[i-1][1],b[0],b[1])}d.stroke()}
+function cap(st){const p=st.p,n=p.length;if(n<2)return;style(st);const m=mid(p[n-2],p[n-1]);d.beginPath();d.moveTo(m[0],m[1]);d.lineTo(p[n-1][0],p[n-1][1]);d.stroke()}
+function redraw(){d.globalCompositeOperation='source-over';d.clearRect(0,0,W,H);for(const st of S.strokes){if(st.p.length===1)seg(st,0);else{for(let i=1;i<st.p.length;i++)seg(st,i);cap(st)}}}
+function pt(e){const r=dc.getBoundingClientRect();return[(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height]}
+dc.addEventListener('pointerdown',e=>{if(!e.isPrimary||cur)return;e.preventDefault();dc.setPointerCapture(e.pointerId);disarm();
+cur={c:S.color,s:S.size,e:S.erase,p:[pt(e)]};S.strokes.push(cur);seg(cur,0)});
+dc.addEventListener('pointermove',e=>{if(!cur||!e.isPrimary)return;const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];
+for(const ev of (evs.length?evs:[e])){cur.p.push(pt(ev));if(cur.p.length>1)seg(cur,cur.p.length-1)}});
+const end=e=>{if(!cur)return;if(cur.p.length>1)cap(cur);cur=null};
+dc.addEventListener('pointerup',end);dc.addEventListener('pointercancel',end);
+// controls
+$('#colors').onclick=e=>{const b=e.target.closest('.sw');if(!b)return;S.color=b.dataset.c;S.erase=false;$('#eraser').setAttribute('aria-pressed',false);paintSwatches()};
+document.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{S.size=+b.dataset.size;paintSizes()});
+$('#eraser').onclick=()=>{S.erase=!S.erase;$('#eraser').setAttribute('aria-pressed',S.erase);paintSwatches()};
+$('#undo').onclick=()=>{S.strokes.pop();redraw()};
+let armT=null;function disarm(){clearTimeout(armT);$('#clear').classList.remove('arm');$('#clear').textContent='🗑️ Clear'}
+$('#clear').onclick=()=>{const b=$('#clear');if(b.classList.contains('arm')){S.strokes=[];redraw();disarm()}else{b.classList.add('arm');b.textContent='Tap again to clear';armT=setTimeout(disarm,3000)}};
+$('#save').onclick=()=>{const t=document.createElement('canvas');t.width=W;t.height=H;renderBoard(t.getContext('2d'),false);t.getContext('2d').drawImage(dc,0,0);
+t.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='my-slate.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)})};
+function paintLetter(){$('#let').textContent=S.set[S.i];paintBoard()}
+$('#trace').onclick=()=>{S.trace=!S.trace;$('#trace').setAttribute('aria-pressed',S.trace);$('#traceRow').hidden=!S.trace;paintLetter()};
+$('#prev').onclick=()=>{S.i=(S.i+S.set.length-1)%S.set.length;paintLetter()};
+$('#next').onclick=()=>{S.i=(S.i+1)%S.set.length;paintLetter()};
+$('#board').onchange=e=>{S.board=e.target.value;paintBoard();paintSwatches();redraw()};
+$('#paper').onchange=e=>{S.paper=e.target.value;paintBoard()};
+$('#set').onchange=e=>{S.set=e.target.value;S.i=0;paintLetter()};
+// full screen
+const FSE=document.documentElement,reqFS=FSE.requestFullscreen||FSE.webkitRequestFullscreen,exitFS=document.exitFullscreen||document.webkitExitFullscreen;
+const inFS=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+if(reqFS){$('#fs').onclick=()=>{if(inFS())exitFS.call(document);else{const r=reqFS.call(FSE);if(r&&r.catch)r.catch(()=>{})}};
+const sync=()=>{const on=inFS();$('#fs').setAttribute('aria-pressed',on);$('#fs').textContent=on?'⛶ Exit full screen':'⛶ Full screen'};
+document.addEventListener('fullscreenchange',sync);document.addEventListener('webkitfullscreenchange',sync)}else $('#fs').hidden=true;
+paintBoard();paintSwatches();paintSizes();
+</script></body></html>
