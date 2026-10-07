@@ -2,7 +2,7 @@
 
 A digital writing slate for children. They can write, draw and trace letters on a chalkboard-style screen with a finger, stylus or mouse. It is built for phones and tablets and is a single HTML file with no installation needed.
 
-Live demo: https://gkmaurya59.github.io/writing-slate/
+Live demo: https://gkmaurya59.github.io/KIDS-WRITING-SLATE/
 
 ## Features
 
