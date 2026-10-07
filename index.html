@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1f4d3a">
-<title>My Writing Slate - Built By DivyaansH MauryA</title>
+<title>My Writing Slate - Built By DivyaansH</title>
 <style>
 :root{--bg:#f4efe6;--ink:#2b2118;--mut:#6b5d50;--card:#fff;--line:#d9cfc0;--acc:#e8590c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14110e;--ink:#f3ece2;--mut:#b5a898;--card:#221d18;--line:#3a322a;--acc:#ff922b}}
@@ -121,10 +121,15 @@ function cap(s){const p=s.p,n=p.length;if(n<2)return;style(s);const m=mid(p[n-2]
 function redraw(){d.setTransform(1,0,0,1,0,0);d.globalCompositeOperation='source-over';d.clearRect(0,0,dc.width,dc.height);d.setTransform(K,0,0,K,0,0);
 for(const s of S.strokes){if(s.p.length===1)seg(s,0);else{for(let i=1;i<s.p.length;i++)seg(s,i);cap(s)}}}
 
-// Auto-disable eraser check: scans canvas pixels to verify if any user markings remain
+// Check if all drawn content is erased and disable eraser in both regular & full screen
 function checkAutoDisableEraser(){
   if(!S.erase) return;
+  // Read untransformed context pixels directly from full canvas resolution
+  d.save();
+  d.setTransform(1, 0, 0, 1, 0, 0);
   const imgData = d.getImageData(0, 0, dc.width, dc.height).data;
+  d.restore();
+
   let hasInk = false;
   for(let i = 3; i < imgData.length; i += 4){
     if(imgData[i] > 0){
