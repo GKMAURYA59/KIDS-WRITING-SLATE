@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1f4d3a">
-<title>My Writing Slate</title>
+<title>My Writing Slate - Built By DivyaansH</title>
 <style>
 :root{--bg:#f4efe6;--ink:#2b2118;--mut:#6b5d50;--card:#fff;--line:#d9cfc0;--acc:#e8590c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14110e;--ink:#f3ece2;--mut:#b5a898;--card:#221d18;--line:#3a322a;--acc:#ff922b}}
@@ -26,17 +26,18 @@ button:focus-visible,select:focus-visible,summary:focus-visible{outline:3px soli
 #traceRow[hidden]{display:none}
 details{color:var(--mut);font-size:13px}summary{cursor:pointer;padding:2px 8px}
 select{font:inherit;min-height:36px;border-radius:8px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:2px 6px}
-#tg{display:none}
+#fl{display:none}
 /* full-screen writing mode: slate covers the whole screen, tools slide up on demand */
 body.fs{padding:0;gap:0}
 body.fs .stage{position:fixed;inset:0;border:0;border-radius:0;box-shadow:none;z-index:1}
 body.fs .tools{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--bg);padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .2s;box-shadow:0 -4px 14px rgba(0,0,0,.35)}
 body.fs .tools.open{transform:none}
-body.fs #tg{display:block;position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:8px;z-index:6;opacity:.9;font-size:18px}
+body.fs #fl{display:flex;gap:8px;position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:8px;z-index:6}
+#fl button{opacity:.93;font-size:18px}
 @media (min-width:560px){.lbl{display:inline;margin-left:4px}button{min-height:46px;min-width:46px;padding:2px 10px;font-size:16px}.sw{width:42px;height:42px}.bar{gap:8px}body{padding:10px}}
 </style></head><body>
 <div class="stage" id="stage"><canvas id="guide"></canvas><canvas id="draw"></canvas></div>
-<button id="tg" aria-label="Show or hide tools" aria-expanded="false">🎨</button>
+<div id="fl"><button id="fe" aria-pressed="false" aria-label="Eraser" title="Eraser">🧽</button><button id="tg" aria-label="Show or hide tools" aria-expanded="false">🎨</button></div>
 <div class="tools" id="tools">
 <div class="bar" id="colors" role="group" aria-label="Pen colours"></div>
 <div class="bar">
@@ -72,8 +73,9 @@ function renderBoard(ctx,w,h,withGuide){const B=BOARD[S.board];ctx.setLineDash([
 const ln=(x1,y1,x2,y2)=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()};
 if(S.paper==='lines'){for(let y=130;y+150<h-10;y+=210){ln(40,y,w-40,y);ctx.setLineDash([14,14]);ln(40,y+75,w-40,y+75);ctx.setLineDash([]);ln(40,y+150,w-40,y+150)}}
 else if(S.paper==='grid'){for(let x=0;x<=w;x+=60)ln(x,0,x,h);for(let y=0;y<=h;y+=60)ln(0,y,w,y)}
+ctx.save();ctx.font=`700 54px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillStyle=B.ink;ctx.globalAlpha=.9;ctx.fillText('Built By DivyaansH',w/2,82);ctx.restore();
 if(withGuide&&S.trace){const em=Math.min(w*1.1,h*0.95);ctx.font=`700 ${em}px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.strokeStyle=B.guide;ctx.lineWidth=10;ctx.lineCap='round';ctx.setLineDash([2,26]);ctx.strokeText(S.set[S.i],w/2,h/2+em*0.36);ctx.setLineDash([])}}
-function paintBoard(){g.setTransform(K,0,0,K,0,0);renderBoard(g,LW,Lh,true);st.style.borderColor=BOARD[S.board].frame;document.querySelector('meta[name=theme-color]').content=BOARD[S.board].bg}
+function paintBoard(){g.setTransform(K,0,0,K,0,0);renderBoard(g,LW,Lh,true);st.style.borderColor=BOARD[S.board].frame;document.querySelector('meta[name=theme-color]').content=BOARD[S.board].bg;document.body.dataset.board=S.board}
 const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];
 function style(s){d.globalCompositeOperation=s.e?'destination-out':'source-over';d.strokeStyle=d.fillStyle=s.e?'#000':col(s.c);d.lineWidth=s.e?s.s*2:s.s;d.lineCap=d.lineJoin='round'}
 function seg(s,i){const p=s.p;style(s);d.beginPath();
@@ -96,9 +98,11 @@ for(const ev of (evs.length?evs:[e])){cur.p.push(pt(ev));if(cur.p.length>1)seg(c
 const end=()=>{if(!cur)return;if(cur.p.length>1)cap(cur);cur=null};
 dc.addEventListener('pointerup',end);dc.addEventListener('pointercancel',end);
 // tools
-$('#colors').onclick=e=>{const b=e.target.closest('.sw');if(!b)return;S.color=b.dataset.c;S.erase=false;$('#eraser').setAttribute('aria-pressed',false);paintSwatches()};
+$('#colors').onclick=e=>{const b=e.target.closest('.sw');if(!b)return;S.color=b.dataset.c;S.erase=false;eSync();paintSwatches()};
 document.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{S.size=+b.dataset.size;paintSizes()});
-$('#eraser').onclick=()=>{S.erase=!S.erase;$('#eraser').setAttribute('aria-pressed',S.erase);paintSwatches()};
+function eSync(){['#eraser','#fe'].forEach(q=>$(q).setAttribute('aria-pressed',S.erase))}
+$('#eraser').onclick=()=>{S.erase=!S.erase;eSync();paintSwatches()};
+$('#fe').onclick=()=>$('#eraser').click();
 $('#undo').onclick=()=>{S.strokes.pop();redraw()};
 let armT=null;const cl=$('#clear'),cll=cl.querySelector('.lbl');
 function disarm(){clearTimeout(armT);cl.classList.remove('arm');cll.textContent='Clear'}
