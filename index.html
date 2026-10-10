@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1f4d3a">
-<title>My Writing Slate - Built By GK Maurya</title>
+<title>My Writing Slate</title>
 <style>
 :root{--bg:#f4efe6;--ink:#2b2118;--mut:#6b5d50;--card:#fff;--line:#d9cfc0;--acc:#e8590c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14110e;--ink:#f3ece2;--mut:#b5a898;--card:#221d18;--line:#3a322a;--acc:#ff922b}}
@@ -82,7 +82,7 @@ function renderBoard(ctx,w,h,withGuide){const B=BOARD[S.board];ctx.setLineDash([
 const ln=(x1,y1,x2,y2)=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()};
 if(S.paper==='lines'){for(let y=130;y+150<h-10;y+=210){ln(40,y,w-40,y);ctx.setLineDash([14,14]);ln(40,y+75,w-40,y+75);ctx.setLineDash([]);ln(40,y+150,w-40,y+150)}}
 else if(S.paper==='grid'){for(let x=0;x<=w;x+=60)ln(x,0,x,h);for(let y=0;y<=h;y+=60)ln(0,y,w,y)}
-ctx.save();ctx.font=`700 28px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillStyle=B.ink;ctx.globalAlpha=.9;ctx.fillText('Built By DivyaansH',w/2,50);ctx.restore();
+ctx.save();ctx.font=`700 28px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillStyle=B.ink;ctx.globalAlpha=.9;ctx.fillText('Built By GK Maurya',w/2,50);ctx.restore();
 if(withGuide&&S.trace){const em=Math.min(w*1.1,h*0.95);ctx.font=`700 ${em}px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.strokeStyle=B.guide;ctx.lineWidth=10;ctx.lineCap='round';ctx.setLineDash([2,26]);ctx.strokeText(S.set[S.i],w/2,h/2+em*0.36);ctx.setLineDash([])}}
 function paintBoard(){g.setTransform(K,0,0,K,0,0);renderBoard(g,LW,Lh,true);st.style.borderColor=BOARD[S.board].frame;document.querySelector('meta[name=theme-color]').content=BOARD[S.board].bg;document.body.dataset.board=S.board}
 const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];
